@@ -16,20 +16,23 @@ try:
 except ImportError:
     import unittest  # noqa
 
-import mock
 import logging
-from cassandra.cqlengine.connection import get_session, get_cluster
-from cassandra.cqlengine import CQLEngineException
-from cassandra.cqlengine import management
-from cassandra.cqlengine.management import _get_non_pk_field_names, _get_table_metadata, sync_table, drop_table, sync_type
-from cassandra.cqlengine.models import Model
-from cassandra.cqlengine import columns
 
-from tests.integration import PROTOCOL_VERSION, greaterthancass20, MockLoggingHandler
+import mock
+
+from cassandra.cqlengine import CQLEngineException
+from cassandra.cqlengine import columns
+from cassandra.cqlengine import management
+from cassandra.cqlengine.connection import get_session, get_cluster
+from cassandra.cqlengine.management import _get_non_pk_field_names, _get_table_metadata, sync_table, drop_table
+from cassandra.cqlengine.management import sync_type
+from cassandra.cqlengine.models import Model
+from cassandra.cqlengine.usertype import UserType
+from tests.integration import MockLoggingHandler
+from tests.integration import PROTOCOL_VERSION
+from tests.integration.cqlengine import DEFAULT_KEYSPACE
 from tests.integration.cqlengine.base import BaseCassEngTestCase
 from tests.integration.cqlengine.query.test_queryset import TestModel
-from cassandra.cqlengine.usertype import UserType
-from tests.integration.cqlengine import DEFAULT_KEYSPACE
 
 
 class KeyspaceManagementTest(BaseCassEngTestCase):
