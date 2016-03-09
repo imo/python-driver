@@ -1,0 +1,20 @@
+environment:
+  matrix:
+    - python_version: 2.7.10
+      cassandra_version: 3.0.3
+platform:
+  - x64
+install:
+  - ps: .\appveyor.ps1
+build_script:
+  - python setup.py install --no-cython
+test_script:
+  - nosetests -s -v --logging-format="[%(levelname)s] %(asctime)s %(thread)d: %(message)s" --with-ignore-docstrings --with-xunit --xunit-file=cqle_results.xml tests\integration\cqlengine\
+cache:
+  - C:\Users\appveyor\.m2
+  - C:\ProgramData\chocolatey\bin
+  - C:\ProgramData\chocolatey\lib
+  - C:\Users\appveyor\jce_policy-1.7.0.zip
+  - C:\Users\appveyor\jce_policy-1.8.0.zip
+  - C:\Users\appveyor\.ccm\repository
+  - C:\Users\appveyor\ccm
