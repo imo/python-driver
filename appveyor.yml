@@ -7,9 +7,9 @@ platform:
 install:
   - ps: .\appveyor.ps1
 build_script:
-  - python setup.py install --no-cython
+  - cmd: python setup.py install --no-cython
 test_script:
-  - nosetests -s -v --logging-format="[%(levelname)s] %(asctime)s %(thread)d: %(message)s" --with-ignore-docstrings --with-xunit --xunit-file=cqle_results.xml tests\integration\cqlengine\
+  - cmd: 'nosetests -s -v --logging-format="[%(levelname)s] %(asctime)s %(thread)d: %(message)s" --with-ignore-docstrings --with-xunit --xunit-file=unit_results.xml .\tests\unit'
 cache:
   - C:\Users\appveyor\.m2
   - C:\ProgramData\chocolatey\bin
