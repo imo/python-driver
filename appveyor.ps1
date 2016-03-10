@@ -62,4 +62,4 @@ If (!(Test-Path C:\Users\appveyor\.ccm\repository\$env:cassandra_version)) {
 }
 
 Start-Process python -ArgumentList "-m pip install -r test-requirements.txt" -Wait -NoNewWindow
-Start-Process python -ArgumentList "-m pip install pip install nose-ignore-docstring -Wait -NoNewWindow
+Start-Process python -ArgumentList "-m pip install pip install nose-ignore-docstring" -Wait -NoNewWindow
