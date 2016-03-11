@@ -9,8 +9,7 @@ install:
 build_script:
   - cmd: python setup.py install --no-cython
 test_script:
-  - cmd: |
-    "nosetests -s -v --with-xunit --xunit-file=unit_results.xml tests\unit\" EXIT /B 0
+  - cmd: '"nosetests -s -v --with-xunit --xunit-file=unit_results.xml tests\unit\" EXIT /B 0'
 after_test:
   -ps: |
     $wc = New-Object 'System.Net.WebClient'
