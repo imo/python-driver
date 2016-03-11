@@ -211,10 +211,12 @@ class ConcurrencyTest((unittest.TestCase)):
 
         t = TimedCallableInvoker(our_handler, slowdown=slowdown)
         t.start()
-        results = execute_concurrent(mock_session, statements_and_params, results_generator=True)
+        try:
+            results = execute_concurrent(mock_session, statements_and_params, results_generator=True)
 
-        self.validate_result_ordering(results)
-        t.stop()
+            self.validate_result_ordering(results)
+        finally:
+            t.stop()
 
     def validate_result_ordering(self, results):
         """
