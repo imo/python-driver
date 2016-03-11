@@ -9,8 +9,9 @@ install:
 build_script:
   - cmd: python setup.py install --no-cython
 test_script:
-  - ps:
-      nosetests -s -v --with-ignore-docstrings --with-xunit --xunit-file=unit_results.xml .\tests\unit
+  - nosetests -s -v --with-ignore-docstrings --with-xunit --xunit-file=unit_results.xml .\tests\unit
+after_test:
+  -ps: |
       $wc = New-Object 'System.Net.WebClient'
       $wc.UploadFile("https://ci.appveyor.com/api/testresults/xunit/$($env:APPVEYOR_JOB_ID)", (Resolve-Path .\unit_results.xml))
 cache:
