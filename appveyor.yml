@@ -10,7 +10,7 @@ build_script:
   - cmd: python setup.py install --no-cython
 test_script:
   - ps: >-
-      nosetests -s -v --logging-format="[%(levelname)s] %(asctime)s %(thread)d: %(message)s" --with-ignore-docstrings --with-xunit --xunit-file=unit_results.xml .\tests\unit
+      nosetests -s -v --with-ignore-docstrings --with-xunit --xunit-file=unit_results.xml .\tests\unit
 
       $wc = New-Object 'System.Net.WebClient'
 
