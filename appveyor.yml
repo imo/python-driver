@@ -10,10 +10,6 @@ build_script:
   - cmd: python setup.py install --no-cython
 test_script:
   - ps: .\run_test.ps1
-after_test:
-  -ps: |
-    $wc = New-Object 'System.Net.WebClient'
-    $wc.UploadFile("https://ci.appveyor.com/api/testresults/xunit/$($env:APPVEYOR_JOB_ID)", (Resolve-Path .\unit_results.xml))
 cache:
   - C:\Users\appveyor\.m2
   - C:\ProgramData\chocolatey\bin
