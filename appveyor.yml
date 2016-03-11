@@ -10,8 +10,9 @@ build_script:
   - cmd: python setup.py install --no-cython
 test_script:
   - ps: |
-    nosetests -s -v --with-ignore-docstrings --with-xunit --xunit-file=unit_results.xml .\tests\unit
-    exit 0
+      nosetests -s -v --with-ignore-docstrings --with-xunit --xunit-file=unit_results.xml .\tests\unit
+
+      exit 0
 after_test:
   -ps: |
     $wc = New-Object 'System.Net.WebClient'
