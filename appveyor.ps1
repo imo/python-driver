@@ -1,5 +1,5 @@
 $env:JAVA_HOME="C:\Program Files\Java\jdk$($env:java_version)"
-$env:PYTHON="C:\Python27-x64"
+$env:PYTHON=$env:python_version
 $env:PATH="$($env:PYTHON);$($env:PYTHON)\Scripts;$($env:JAVA_HOME)\bin;$($env:PATH)"
 $env:CCM_PATH="C:\Users\appveyor\ccm"
 $env:CASSANDRA_VERSION=$env:cassandra_version
