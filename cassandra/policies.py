@@ -19,6 +19,9 @@ from threading import Lock
 import six
 
 from cassandra import ConsistencyLevel
+from cassandra.exceptions import ConnectionException
+
+
 
 from six.moves import range
 
@@ -445,11 +448,14 @@ class ConvictionPolicy(object):
         """
         self.host = host
 
-    def add_failure(self, connection_exc):
+    def add_failure(self, exception):
         """
         Implementations should return :const:`True` if the host should be
         convicted, :const:`False` otherwise.
         """
+        raise NotImplementedError()
+
+    def add_success(self):
         raise NotImplementedError()
 
     def reset(self):
@@ -467,8 +473,14 @@ class SimpleConvictionPolicy(ConvictionPolicy):
     of any kind.
     """
 
-    def add_failure(self, connection_exc):
-        return True
+    def add_failure(self, exception):
+        print type(exception)
+        if isinstance(exception, ConnectionException):
+            return True
+        return False
+
+    def add_success(self):
+        pass
 
     def reset(self):
         pass

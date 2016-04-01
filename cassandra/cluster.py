@@ -2884,35 +2884,46 @@ class ResponseFuture(object):
                 if not retry_policy:
                     retry_policy = self.session.cluster.default_retry_policy
 
+                reuse_connection = True
+
+                self.session.cluster.signal_connection_failure(self._current_host,
+                        response, False, expect_host_to_be_down=False)
+
                 if isinstance(response, ReadTimeoutErrorMessage):
                     if self._metrics is not None:
                         self._metrics.on_read_timeout()
                     retry = retry_policy.on_read_timeout(
                         self.query, retry_num=self._query_retries, **response.info)
+                    reuse_connection = False
+                    log.warning("Coordinator %s got ReadTimeoutErrorMessage", self._current_host)
                 elif isinstance(response, WriteTimeoutErrorMessage):
                     if self._metrics is not None:
                         self._metrics.on_write_timeout()
                     retry = retry_policy.on_write_timeout(
                         self.query, retry_num=self._query_retries, **response.info)
+                    reuse_connection = False
+                    log.warning("Coordinator %s got WriteTimeoutErrorMessage", self._current_host)
                 elif isinstance(response, UnavailableErrorMessage):
                     if self._metrics is not None:
                         self._metrics.on_unavailable()
                     retry = retry_policy.on_unavailable(
                         self.query, retry_num=self._query_retries, **response.info)
+                    reuse_connection = False
+                    log.warning("Coordinator %s got UnavailableErrorMessage", self._current_host)
                 elif isinstance(response, OverloadedErrorMessage):
                     if self._metrics is not None:
                         self._metrics.on_other_error()
                     # need to retry against a different host here
                     log.warning("Host %s is overloaded, retrying against a different "
                                 "host", self._current_host)
-                    self._retry(reuse_connection=False, consistency_level=None)
-                    return
+                    reuse_connection = False
+                    retry = (RetryPolicy.RETRY, None)
                 elif isinstance(response, IsBootstrappingErrorMessage):
                     if self._metrics is not None:
                         self._metrics.on_other_error()
                     # need to retry against a different host here
-                    self._retry(reuse_connection=False, consistency_level=None)
-                    return
+                    reuse_connection = False
+                    retry = (RetryPolicy.RETRY, None)
                 elif isinstance(response, PreparedQueryNotFound):
                     if self.prepared_statement:
                         query_id = self.prepared_statement.query_id
@@ -2961,7 +2972,7 @@ class ResponseFuture(object):
                 retry_type, consistency = retry
                 if retry_type is RetryPolicy.RETRY:
                     self._query_retries += 1
-                    self._retry(reuse_connection=True, consistency_level=consistency)
+                    self._retry(reuse_connection=reuse_connection, consistency_level=consistency)
                 elif retry_type is RetryPolicy.RETHROW:
                     self._set_final_exception(response.to_exception())
                 else:  # IGNORE
