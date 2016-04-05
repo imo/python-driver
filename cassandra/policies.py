@@ -20,6 +20,9 @@ import socket
 import warnings
 from cassandra import WriteType as WT
 
+from cassandra.write_type import WriteType
+from cassandra.protocol import ReadTimeoutErrorMessage, WriteTimeoutErrorMessage
+from cassandra import ConsistencyLevel
 
 # This is done this way because WriteType was originally
 # defined here and in order not to break the API.
@@ -602,7 +605,13 @@ class SimpleConvictionPolicy(ConvictionPolicy):
     """
 
     def add_failure(self, exception):
-        return not isinstance(exception, OperationTimedOut)
+        if isinstance(exception, OperationTimedOut)
+            return False
+        if isinstance(exception, ReadTimeoutErrorMessage):
+            return False
+        if isinstance(exception, WriteTimeoutErrorMessage):
+            return False
+        return True
 
 	def add_success(self):
         pass

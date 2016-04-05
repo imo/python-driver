@@ -4538,9 +4538,6 @@ class ResponseFuture(object):
 
                 reuse_connection = True
 
-                self.session.cluster.signal_connection_failure(self._current_host,
-                        response, False, expect_host_to_be_down=False)
-
                 if isinstance(response, ReadTimeoutErrorMessage):
                     if self._metrics is not None:
                         self._metrics.on_read_timeout()
@@ -4548,6 +4545,8 @@ class ResponseFuture(object):
                         self.query, retry_num=self._query_retries, **response.info)
                     reuse_connection = False
                     log.warning("Coordinator %s got ReadTimeoutErrorMessage", self._current_host)
+                    self.session.cluster.signal_connection_failure(self._current_host,
+                            response, False, expect_host_to_be_down=False)
                 elif isinstance(response, WriteTimeoutErrorMessage):
                     if self._metrics is not None:
                         self._metrics.on_write_timeout()
@@ -4555,6 +4554,8 @@ class ResponseFuture(object):
                         self.query, retry_num=self._query_retries, **response.info)
                     reuse_connection = False
                     log.warning("Coordinator %s got WriteTimeoutErrorMessage", self._current_host)
+                    self.session.cluster.signal_connection_failure(self._current_host,
+                            response, False, expect_host_to_be_down=False)
                 elif isinstance(response, UnavailableErrorMessage):
                     if self._metrics is not None:
                         self._metrics.on_unavailable()
