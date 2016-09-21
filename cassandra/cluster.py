@@ -829,7 +829,7 @@ class Cluster(object):
                 log.debug("Connecting to cluster, contact points: %s; protocol version: %s",
                           self.contact_points, self.protocol_version)
                 self.connection_class.initialize_reactor()
-                atexit.register(partial(_shutdown_cluster, self))
+                atexit.register(partial(_shutdown_cluster, weakref.proxy(self)))
                 for address in self.contact_points:
                     host, new = self.add_host(address, signal=False)
                     if new:
