@@ -604,7 +604,7 @@ class SimpleConvictionPolicy(ConvictionPolicy):
     """
 
     def add_failure(self, exception):
-        if isinstance(exception, OperationTimedOut)
+        if isinstance(exception, OperationTimedOut):
             return False
         if isinstance(exception, ReadTimeoutErrorMessage):
             return False
@@ -612,7 +612,7 @@ class SimpleConvictionPolicy(ConvictionPolicy):
             return False
         return True
 
-	def add_success(self):
+    def add_success(self):
         pass
 
     def reset(self):

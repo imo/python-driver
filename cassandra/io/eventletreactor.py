@@ -1,5 +1,5 @@
 # Copyright 2014 Symantec Corporation
-# Copyright DataStax, Inc.
+# Copyright 2013-2015 DataStax, Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -15,34 +15,30 @@
 
 # Originally derived from MagnetoDB source:
 #   https://github.com/stackforge/magnetodb/blob/2015.1.0b1/magnetodb/common/cassandra/io/eventletreactor.py
+
+from errno import EALREADY, EINPROGRESS, EWOULDBLOCK, EINVAL
 import eventlet
-from eventlet.green import socket
+from eventlet.green import select, socket
 from eventlet.queue import Queue
-from greenlet import GreenletExit
+from functools import partial
 import logging
+import os
 from threading import Event
 import time
 
 from six.moves import xrange
 
 from cassandra.connection import Connection, ConnectionShutdown, Timer, TimerManager
-try:
-    from eventlet.green.OpenSSL import SSL
-    _PYOPENSSL = True
-except ImportError as e:
-    _PYOPENSSL = False
-    no_pyopenssl_error = e
 
 
 log = logging.getLogger(__name__)
 
 
-def _check_pyopenssl():
-    if not _PYOPENSSL:
-        raise ImportError(
-            "{}, pyOpenSSL must be installed to enable "
-            "SSL support with the Eventlet event loop".format(str(no_pyopenssl_error))
-        )
+def is_timeout(err):
+    return (
+        err in (EINPROGRESS, EALREADY, EWOULDBLOCK) or
+        (err == EINVAL and os.name in ('nt', 'ce'))
+    )
 
 
 class EventletConnection(Connection):
@@ -94,7 +90,7 @@ class EventletConnection(Connection):
 
     def __init__(self, *args, **kwargs):
         Connection.__init__(self, *args, **kwargs)
-        self.uses_legacy_ssl_options = self.ssl_options and not self.ssl_context
+
         self._write_queue = Queue()
 
         self._connect_socket()
@@ -103,38 +99,13 @@ class EventletConnection(Connection):
         self._write_watcher = eventlet.spawn(lambda: self.handle_write())
         self._send_options_message()
 
-    def _wrap_socket_from_context(self):
-        _check_pyopenssl()
-        self._socket = SSL.Connection(self.ssl_context, self._socket)
-        self._socket.set_connect_state()
-        if self.ssl_options and 'server_hostname' in self.ssl_options:
-            # This is necessary for SNI
-            self._socket.set_tlsext_host_name(self.ssl_options['server_hostname'].encode('ascii'))
-
-    def _initiate_connection(self, sockaddr):
-        if self.uses_legacy_ssl_options:
-            super(EventletConnection, self)._initiate_connection(sockaddr)
-        else:
-            self._socket.connect(sockaddr)
-            if self.ssl_context or self.ssl_options:
-                self._socket.do_handshake()
-
-    def _match_hostname(self):
-        if self.uses_legacy_ssl_options:
-            super(EventletConnection, self)._match_hostname()
-        else:
-            cert_name = self._socket.get_peer_certificate().get_subject().commonName
-            if cert_name != self.endpoint.address:
-                raise Exception("Hostname verification failed! Certificate name '{}' "
-                                "doesn't endpoint '{}'".format(cert_name, self.endpoint.address))
-
     def close(self):
         with self.lock:
             if self.is_closed:
                 return
             self.is_closed = True
 
-        log.debug("Closing connection (%s) to %s" % (id(self), self.endpoint))
+        log.debug("Closing connection (%s) to %s" % (id(self), self.host))
 
         cur_gthread = eventlet.getcurrent()
 
@@ -144,11 +115,11 @@ class EventletConnection(Connection):
             self._write_watcher.kill()
         if self._socket:
             self._socket.close()
-        log.debug("Closed socket to %s" % (self.endpoint,))
+        log.debug("Closed socket to %s" % (self.host,))
 
         if not self.is_defunct:
             self.error_all_requests(
-                ConnectionShutdown("Connection to %s was closed" % self.endpoint))
+                ConnectionShutdown("Connection to %s was closed" % self.host))
             # don't leave in-progress operations hanging
             self.connected_event.set()
 
@@ -165,23 +136,30 @@ class EventletConnection(Connection):
                 log.debug("Exception during socket send for %s: %s", self, err)
                 self.defunct(err)
                 return  # Leave the write loop
-            except GreenletExit:  # graceful greenthread exit
-                return
 
     def handle_read(self):
+        run_select = partial(select.select, (self._socket,), (), ())
         while True:
+            try:
+                run_select()
+            except Exception as exc:
+                if not self.is_closed:
+                    log.debug("Exception during read select() for %s: %s",
+                              self, exc)
+                    self.defunct(exc)
+                return
+
             try:
                 buf = self._socket.recv(self.in_buffer_size)
                 self._iobuf.write(buf)
             except socket.error as err:
-                log.debug("Exception during socket recv for %s: %s",
-                          self, err)
-                self.defunct(err)
-                return  # leave the read loop
-            except GreenletExit:  # graceful greenthread exit
-                return
+                if not is_timeout(err):
+                    log.debug("Exception during socket recv for %s: %s",
+                              self, err)
+                    self.defunct(err)
+                    return  # leave the read loop
 
-            if buf and self._iobuf.tell():
+            if self._iobuf.tell():
                 self.process_io_buffer()
             else:
                 log.debug("Connection %s closed by server", self)
